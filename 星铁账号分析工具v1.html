@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星铁账号分析工具 v1 — 手动导入 · 模拟式引擎 · 三大深渊</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2354b0ff'/%3E%3Cstop offset='1' stop-color='%23b78bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%230f1a2f'/%3E%3Cpath d='M32 8 L36 26 L52 22 L38 34 L48 48 L32 38 L20 48 L26 34 L12 22 L28 26 Z' fill='url(%23g)'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23f5c445'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg0:#0a1020; --bg1:#0e1729; --card:#131f36; --card2:#182742; --line:#24395c;
+  --text:#e8eef9; --muted:#8fa3c7; --acc:#54b0ff; --gold:#f5c445;
+  --green:#3ddc97; --orange:#ffb454; --red:#ff6b6b; --purple:#b78bff;
+  --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(84,176,255,.14), transparent 60%),
+    radial-gradient(900px 500px at 10% 110%, rgba(183,139,255,.10), transparent 60%),
+    var(--bg0);
+  color:var(--text);
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  font-size:15px; line-height:1.55;
+  min-height:100vh;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px 80px}
+a{color:var(--acc);text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{
+  font-family:inherit;font-size:14px;color:var(--text);
+  background:var(--bg1);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:0}
+label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 4px}
+.num{font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+
+/* ===== Header ===== */
+header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,16,32,.88);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.hd-in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
+.logo .badge{font-size:11px;font-weight:600;background:var(--card2);border:1px solid var(--line);color:var(--muted);padding:3px 8px;border-radius:20px}
+.hd-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card2);border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:7px 13px;font-size:13.5px;font-weight:500;
+  transition:border-color .15s,background .15s,transform .05s;
+}
+.btn:hover{border-color:var(--acc);background:#1d3052}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#07111f;font-weight:600}
+.btn.primary:hover{background:#6dc0ff}
+.btn.danger{color:var(--red);border-color:#5c2a33}
+.btn.danger:hover{border-color:var(--red);background:#2a1420}
+.btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
+
+/* ===== Mode tabs ===== */
+.mode-tabs{display:flex;gap:8px;margin:18px 0 6px;flex-wrap:wrap}
+.mode-tab{
+  flex:1;min-width:150px;text-align:left;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 14px;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,background .15s;
+}
+.mode-tab:hover{border-color:var(--acc)}
+.mode-tab.active{border-color:var(--acc);background:#1a2c4d}
+.mode-tab .t{font-weight:600;font-size:15px}
+.mode-tab .d{font-size:12px;color:var(--muted)}
+.mode-tab.active .t{color:var(--acc)}
+
+/* ===== Layout ===== */
+.grid{display:grid;gap:14px}
+.cols-2{grid-template-columns:1fr 1fr}
+.cols-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:980px){.cols-2,.cols-3{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 .sub{font-size:12px;color:var(--muted);font-weight:400}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid transparent}
+.tag.blue{color:var(--acc);border-color:rgba(84,176,255,.5);background:rgba(84,176,255,.1)}
+.tag.gold{color:var(--gold);border-color:rgba(245,196,69,.5);background:rgba(245,196,69,.1)}
+.tag.green{color:var(--green);border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.1)}
+.tag.orange{color:var(--orange);border-color:rgba(255,180,84,.5);background:rgba(255,180,84,.1)}
+.tag.red{color:var(--red);border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.1)}
+.tag.purple{color:var(--purple);border-color:rgba(183,139,255,.5);background:rgba(183,139,255,.1)}
+.tag.gray{color:var(--muted);border-color:var(--line);background:var(--card2)}
+
+/* ===== Character cards ===== */
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.char-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.char-top{display:flex;align-items:center;gap:10px}
+.char-avatar{
+  width:44px;height:44px;border-radius:10px;flex:0 0 44px;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;
+  background:linear-gradient(135deg,#1e3a66,#2b2a5e);border:1px solid var(--line);
+}
+.char-top .nm{font-weight:600;font-size:15px}
+.char-top .meta{font-size:12px;color:var(--muted)}
+.char-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.metric{background:var(--bg1);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.metric .k{font-size:11px;color:var(--muted)}
+.metric .v{font-size:14px;font-weight:600}
+.char-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ===== Bars ===== */
+.bar-row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.bar-row .nm{width:110px;font-size:13px;flex:0 0 110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:1;background:var(--bg1);border-radius:6px;height:14px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;border-radius:6px}
+.bar-row .vl{width:88px;text-align:right;font-size:12.5px;font-weight:600}
+
+/* ===== Rank rows ===== */
+.rank-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;background:var(--bg1);border:1px solid var(--line);margin:6px 0}
+.rank-row .pos{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 26px;background:var(--card2)}
+.rank-row.pos1{border-color:rgba(245,196,69,.6)}
+.rank-row.pos1 .pos{background:var(--gold);color:#201503}
+.rank-row .who{flex:1;min-width:0}
+.rank-row .who .n{font-weight:600;font-size:14px}
+.rank-row .who .s{font-size:12px;color:var(--muted)}
+.rank-row .score{text-align:right;font-size:13px}
+.rank-row .score .big{font-weight:700;font-size:16px}
+
+/* ===== Advise ===== */
+.adv-item{display:flex;gap:10px;padding:10px 12px;border-radius:9px;background:var(--bg1);border:1px solid var(--line);margin:7px 0}
+.adv-item .pri{width:44px;flex:0 0 44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+.adv-item .tx{flex:1}
+.adv-item .tx .t{font-weight:600;font-size:14px}
+.adv-item .tx .s{font-size:12.5px;color:var(--muted)}
+.pri-1{background:var(--red);color:#2a0a0a}.pri-2{background:var(--orange);color:#2a1603}.pri-3{background:var(--gold);color:#241a03}.pri-4{background:var(--acc);color:#07111f}
+
+/* ===== Table ===== */
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;overflow:hidden;text-overflow:ellipsis}
+th{font-size:12px;color:var(--muted);font-weight:600}
+tr:hover td{background:rgba(84,176,255,.05)}
+
+/* ===== Modal ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(4,8,16,.72);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto}
+.modal{background:var(--bg1);border:1px solid var(--line);border-radius:14px;width:100%;max-width:860px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h2{font-size:17px;margin-bottom:14px}
+.f-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.f-grid .full{grid-column:1/-1}
+@media(max-width:760px){.f-grid{grid-template-columns:1fr 1fr}.f-grid .full{grid-column:auto}}
+.form-sec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px}
+.form-sec .fs-t{font-size:13px;font-weight:600;color:var(--acc);margin-bottom:10px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+/* ===== Misc ===== */
+.notice{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);margin:14px 0}
+.notice b{color:var(--gold)}
+.notice.warn{border-left-color:var(--orange)}
+.notice.info{border-left-color:var(--acc)}
+.empty{
+  border:1px dashed var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center;color:var(--muted);
+}
+.empty .big{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;
+  background:#1c2e4f;border:1px solid var(--acc);color:var(--text);
+  padding:10px 18px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 30px rgba(0,0,0,.45);
+  opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;
+}
+#toast.show{opacity:1}
+kbd{background:var(--card2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.two-col{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+@media(max-width:980px){.two-col{grid-template-columns:1fr}}
+.star{color:var(--gold)}
+
+/* ===== OCR 截图导入 ===== */
+.scan-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+@media(max-width:900px){.scan-grid{grid-template-columns:1fr}}
+.scan-img{background:var(--bg0);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.scan-img img{max-width:100%;max-height:420px;border-radius:8px}
+.dropzone{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone:hover,.dropzone.over{border-color:var(--acc);background:rgba(84,176,255,.06)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:13px;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip:hover{border-color:var(--acc);background:#1d3052}
+.fld-row{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.fld-row:hover{background:rgba(84,176,255,.06)}
+.fld-row.sel{border-color:var(--acc);background:rgba(84,176,255,.12)}
+.fld-row .fk{width:92px;font-size:13px;color:var(--muted);flex:0 0 92px}
+.fld-row .fv{font-weight:600;font-size:14px;min-height:24px;display:flex;align-items:center;gap:6px;flex:1}
+.fld-row .fv .ph{color:var(--muted);font-weight:400;font-size:12px}
+.scan-note{font-size:12px;color:var(--muted);margin-top:8px;min-height:18px}
+.progress-bar{height:6px;background:var(--bg0);border-radius:4px;overflow:hidden;margin-top:8px}
+.progress-bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+
+/* ===== 移动端适配 ===== */
+@media(max-width:640px){
+  body{font-size:16px}
+  input,select,textarea{font-size:16px}
+  .btn{min-height:44px;padding:9px 14px}
+  .btn.sm{min-height:38px}
+  .mode-tab{min-width:100%}
+  .hd-in{gap:8px}
+  .hd-actions .btn{flex:1;justify-content:center}
+  .char-metrics{grid-template-columns:repeat(2,1fr)}
+  table{font-size:12.5px}
+  th,td{padding:6px 6px}
+  .modal{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-in">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 64 64"><path d="M32 8 L36 26 L52 22 L38 34 L48 48 L32 38 L20 48 L26 34 L12 22 L28 26 Z" fill="#54b0ff"/><circle cx="32" cy="32" r="4" fill="#f5c445"/></svg>
+      星铁账号分析工具 <span class="badge">v1 · 手动导入 · 模拟式引擎</span>
+    </div>
+    <div class="hd-actions">
+      <button class="btn primary" id="btnScanner" title="游戏截图 → OCR 识别 → 点选填入">截图导入</button>
+      <button class="btn" id="btnImport" title="选择 JSON 文件导入">导入 JSON</button>
+      <button class="btn" id="btnExport">导出 JSON</button>
+      <button class="btn" id="btnExample">载入示例</button>
+      <button class="btn danger" id="btnClear">清空数据</button>
+      <input type="file" id="fileInput" accept=".json,application/json" class="hidden">
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 模式切换 -->
+  <div class="mode-tabs" id="modeTabs"></div>
+  <div class="notice" id="modeDesc"></div>
+
+  <!-- 视图容器 -->
+  <div id="view"></div>
+
+  <footer>
+    数据口径说明：行动值 AV = 10000 ÷ 速度（已核实的公开机制）；混沌回忆首轮 150 AV、之后每轮 100 AV；末日幻影初始行动值 2000，伤害分与剩余行动值分各上限 2000。角色面板、光锥与遗器数值以你导入/填写的数据为准，程序不内置编造的角色数值。本工具为本地单页应用，数据保存在当前浏览器。
+  </footer>
+</main>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ================= 常量 ================= */
+const PATHS = ["毁灭","巡猎","智识","同谐","虚无","存护","丰饶"];
+const ELEMENTS = ["物理","火","冰","雷","风","量子","虚数"];
+const RELIC_SLOTS = ["头","手","衣","鞋","球","绳"];
+
+const MODES = {
+  moc: {
+    key:"moc", name:"混沌回忆",
+    desc:"竞速：在限定轮次内打完。窗口 = 首轮150行动值 + 后续每轮100行动值。评分 = 窗口内总伤害（行动次数 × 单次期望伤害），主打对单/精英。",
+    paramDefs:[
+      {k:"cycles", label:"模拟轮数", type:"number", min:1, max:10, step:1, def:5},
+      {k:"targets", label:"目标数量", type:"number", min:1, max:5, step:1, def:1}
+    ],
+    defaults:{cycles:5, targets:1}
+  },
+  pf: {
+    key:"pf", name:"虚构叙事",
+    desc:"高分挑战：每波重置行动值，限定轮数内清怪计分。每期BUFF轮换，故参数可按当期调整。评分 = 窗口内总伤害 × 目标数量（对群清怪效率）。",
+    paramDefs:[
+      {k:"waves", label:"波次数量", type:"number", min:1, max:4, step:1, def:2},
+      {k:"cycles", label:"每波轮数", type:"number", min:1, max:6, step:1, def:3},
+      {k:"targets", label:"每波目标数", type:"number", min:1, max:8, step:1, def:3}
+    ],
+    defaults:{waves:2, cycles:3, targets:3}
+  },
+  as: {
+    key:"as", name:"末日幻影",
+    desc:"行动值预算制：初始行动值 2000。积分 = 伤害百分比分(上限2000) + 剩余行动值分(上限2000)，满星约需 6600 分（上下两场）。评分口径与官方计分一致。",
+    paramDefs:[
+      {k:"budget", label:"初始行动值", type:"number", min:500, max:3000, step:100, def:2000},
+      {k:"bossHp", label:"BOSS血量(示例)", type:"number", min:100000, max:10000000, step:100000, def:1000000}
+    ],
+    defaults:{budget:2000, bossHp:1000000}
+  }
+};
+
+/* 养成建议的体力成本口径（示例估算值，可在数据说明中查看） */
+const COST = {
+  level80: 300,     // 角色等级 1→80 的近似体力
+  tracesMax: 500,   // 四行迹 0→10 的近似体力
+  relicPiece: 500   // 单件遗器毕业的期望体力（随机项）
+};
+
+/* ================= 状态 ================= */
+let state = {
+  mode:"moc",
+  characters:[],
+  teamIds:[],
+  params: JSON.parse(JSON.stringify({moc:{...MODES.moc.defaults}, pf:{...MODES.pf.defaults}, as:{...MODES.as.defaults}})),
+  lastSim:null   // 最近一次模拟结果 {scores:[], ts}
+};
+
+const LS_KEY = "hsr-analyzer-v1";
+
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d && Array.isArray(d.characters)){
+      state.mode = d.mode || "moc";
+      state.characters = d.characters;
+      state.teamIds = Array.isArray(d.teamIds) ? d.teamIds : [];
+      if(d.params){
+        for(const k of Object.keys(MODES)) if(d.params[k]) state.params[k] = Object.assign({}, MODES[k].defaults, d.params[k]);
+      }
+    }
+  }catch(e){ console.warn("数据读取失败", e); }
+}
+
+/* ================= 工具函数 ================= */
+function uid(){ return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n, d=0){
+  if(n==null || isNaN(n)) return "—";
+  if(Math.abs(n)>=10000) return n.toLocaleString("zh-CN",{maximumFractionDigits:0});
+  return Number(n).toFixed(d);
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+function blankCharacter(){
+  return {
+    id:uid(), name:"", path:"毁灭", element:"物理",
+    level:1, ascension:0,
+    traces:{basic:1, skill:1, ult:1, talent:1},
+    eidolon:0,
+    panel:{atk:1000, spd:100, critRate:50, critDmg:100, dmgBonus:0, energyMax:100, breakEffect:0},
+    lightCone:{name:"", atkBonus:0, dmgBonus:0, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+    altLC:{name:"", atkBonus:0, dmgBonus:0, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+    relics:{head:"", hand:"", body:"", feet:"", orb:"", rope:""},
+    relicSets:["",""],
+    relicReady:false,
+    multiplier:200,
+    note:""
+  };
+}
+
+/* ================= 示例数据（演示用，非真实角色数值） ================= */
+function exampleData(){
+  const mk = (o)=>{ const c = blankCharacter(); Object.assign(c, o); c.id = uid(); return c; };
+  return [
+    mk({name:"示例·主C（巡猎）", path:"巡猎", element:"量子", level:80, ascension:6,
+      traces:{basic:6, skill:10, ult:10, talent:10}, eidolon:0,
+      panel:{atk:3400, spd:134, critRate:80, critDmg:160, dmgBonus:40, energyMax:100, breakEffect:0},
+      lightCone:{name:"示例光锥·攻", atkBonus:500, dmgBonus:20, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+      altLC:{name:"示例光锥·爆", atkBonus:300, dmgBonus:15, critRateBonus:8, critDmgBonus:40, spdBonus:0},
+      relics:{head:"攻击", hand:"攻击", body:"暴击率", feet:"速度", orb:"量子伤害", rope:"攻击"},
+      relicSets:["示例套装A(2件)","示例套装B(2件)"], relicReady:true, multiplier:220}),
+    mk({name:"示例·辅助（同谐）", path:"同谐", element:"虚数", level:80, ascension:6,
+      traces:{basic:6, skill:10, ult:10, talent:10}, eidolon:2,
+      panel:{atk:2200, spd:160, critRate:60, critDmg:120, dmgBonus:30, energyMax:120, breakEffect:0},
+      lightCone:{name:"示例光锥·速", atkBonus:200, dmgBonus:0, critRateBonus:0, critDmgBonus:0, spdBonus:12},
+      altLC:{name:"", atkBonus:0, dmgBonus:0, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+      relics:{head:"生命", hand:"攻击", body:"暴击率", feet:"速度", orb:"虚数伤害", rope:"充能"},
+      relicSets:["示例套装C(4件)"], relicReady:false, multiplier:120, note:"示例：行迹已满、遗器未毕业，用于演示养成建议"}),
+    mk({name:"示例·输出（智识）", path:"智识", element:"雷", level:70, ascension:5,
+      traces:{basic:6, skill:8, ult:8, talent:6}, eidolon:0,
+      panel:{atk:3000, spd:120, critRate:70, critDmg:140, dmgBonus:50, energyMax:100, breakEffect:0},
+      lightCone:{name:"示例光锥·攻", atkBonus:450, dmgBonus:25, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+      altLC:{name:"", atkBonus:0, dmgBonus:0, critRateBonus:0, critDmgBonus:0, spdBonus:0},
+      relics:{head:"攻击", hand:"攻击", body:"暴击伤害", feet:"攻击", orb:"雷伤", rope:"攻击"},
+      relicSets:["示例套装D(4件)"], relicReady:true, multiplier:180, note:"示例：等级与行迹未满，用于演示养成建议"})
+  ];
+}
+
+/* ================= 导入 / 导出 ================= */
+function exportJSON(){
+  const blob = new Blob([JSON.stringify({app:"hsr-analyzer-v1", exportedAt:new Date().toISOString(), data:state}, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "星铁账号数据_" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 3000);
+  toast("已导出 JSON");
+}
+function importJSON(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const obj = JSON.parse(r.result);
+      const d = obj && obj.data ? obj.data : obj;
+      if(!d || !Array.isArray(d.characters)) throw new Error("结构不符");
+      if(!confirm("导入将覆盖当前全部数据（角色与设置），确定继续吗？")) return;
+      state.characters = d.characters.map(c=>Object.assign(blankCharacter(), c));
+      if(d.teamIds) state.teamIds = d.teamIds.filter(id=>state.characters.some(c=>c.id===id));
+      if(d.params){ for(const k of Object.keys(MODES)) if(d.params[k]) state.params[k] = Object.assign({}, MODES[k].defaults, d.params[k]); }
+      save(); renderAll();
+      toast("导入成功：" + state.characters.length + " 个角色");
+    }catch(e){
+      toast("导入失败：文件格式不是有效的星铁数据 JSON");
+      console.warn(e);
+    }
+  };
+  r.readAsText(file, "utf-8");
+}
+
+/* ================= 角色数据：查询与校验 ================= */
+function getChar(id){ return state.characters.find(c=>c.id===id); }
+function isInTeam(id){ return state.teamIds.includes(id); }
+function toggleTeam(id){
+  const i = state.teamIds.indexOf(id);
+  if(i>=0) state.teamIds.splice(i,1);
+  else { if(state.teamIds.length>=4){ toast("队伍最多 4 人，请先移除一位"); return; } state.teamIds.push(id); }
+  save(); renderAll();
+}
+
+/* 养成完整度（用于盘点与建议） */
+function growthGap(c){
+  const lvGap = Math.max(0, 80 - c.level);
+  const tr = c.traces;
+  const trGap = ["basic","skill","ult","talent"].reduce((s,k)=> s + Math.max(0, 10 - tr[k]), 0);
+  return {lvGap, trGap, relicReady: !!c.relicReady};
+}
+
+/* ================= 渲染：模式 Tab ================= */
+function renderModeTabs(){
+  const box = document.getElementById("modeTabs");
+  box.innerHTML = Object.values(MODES).map(m=>
+    `<button class="mode-tab ${state.mode===m.key?"active":""}" data-mode="${m.key}">
+       <span class="t">${m.name}</span><span class="d">${m.key==="moc"?"对单·轮次窗口":m.key==="pf"?"对群·清怪效率":"BOSS·行动值预算"}</span>
+     </button>`).join("");
+  box.querySelectorAll(".mode-tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ state.mode = btn.dataset.mode; save(); renderAll(); });
+  });
+  const desc = document.getElementById("modeDesc");
+  desc.innerHTML = `<b>${MODES[state.mode].name}</b>：${MODES[state.mode].desc}`;
+}
+
+/* ================= 渲染：角色管理 ================= */
+function renderCharacters(){
+  const host = document.getElementById("charList");
+  if(!host) return;
+  if(state.characters.length===0){
+    host.innerHTML = `<div class="empty"><div class="big">还没有角色数据</div>
+      推荐用「截图导入」：游戏角色详情页截图 → 识别 → 点选填入，最快。<br><br>
+      <button class="btn primary" id="btnEmptyScan">截图导入</button>
+      <button class="btn" id="btnEmptyExample">载入示例</button>
+      <button class="btn" id="btnEmptyAdd">手动添加角色</button></div>`;
+    document.getElementById("btnEmptyScan").addEventListener("click", openScanner);
+    document.getElementById("btnEmptyExample").addEventListener("click", ()=>{
+      state.characters = exampleData(); state.teamIds = state.characters.map(c=>c.id);
+      save(); renderAll(); toast("已载入示例数据");
+    });
+    document.getElementById("btnEmptyAdd").addEventListener("click", ()=>openEditor());
+    return;
+  }
+  host.innerHTML = state.characters.map(c=>{
+    const g = growthGap(c);
+    const tags = [];
+    if(g.lvGap>0) tags.push(`<span class="tag orange">等级未满</span>`);
+    if(g.trGap>0) tags.push(`<span class="tag orange">行迹未满</span>`);
+    if(!g.relicReady) tags.push(`<span class="tag gray">遗器待刷</span>`);
+    if(g.lvGap===0 && g.trGap===0 && g.relicReady) tags.push(`<span class="tag green">已毕业</span>`);
+    const inTeam = isInTeam(c.id);
+    return `<div class="char-card">
+      <div class="char-top">
+        <div class="char-avatar">${c.name.slice(0,1)||"?"}</div>
+        <div style="flex:1;min-width:0">
+          <div class="nm">${c.name||"未命名角色"}</div>
+          <div class="meta">${c.path} · ${c.element} · Lv${c.level} · 星魂${c.eidolon}</div>
+          <div style="margin-top:4px">${tags.join("")}</div>
+        </div>
+        <button class="btn sm ${inTeam?"primary":""}" data-team="${c.id}">${inTeam?"在队":"入队"}</button>
+      </div>
+      <div class="char-metrics">
+        <div class="metric"><div class="k">攻击</div><div class="v num">${fmt(c.panel.atk)}</div></div>
+        <div class="metric"><div class="k">速度</div><div class="v num">${fmt(c.panel.spd,1)}</div></div>
+        <div class="metric"><div class="k">行迹</div><div class="v num">${(c.traces.basic+c.traces.skill+c.traces.ult+c.traces.talent)/4}</div></div>
+      </div>
+      <div class="char-actions">
+        <button class="btn sm" data-edit="${c.id}">编辑</button>
+        <button class="btn sm" data-copy="${c.id}">复制</button>
+        <button class="btn sm danger" data-del="${c.id}">删除</button>
+      </div>
+    </div>`;
+  }).join("");
+  host.querySelectorAll("[data-team]").forEach(b=>b.addEventListener("click", ()=>toggleTeam(b.dataset.team)));
+  host.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>openEditor(getChar(b.dataset.edit))));
+  host.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click", ()=>{
+    const src = getChar(b.dataset.copy); const cp = JSON.parse(JSON.stringify(src));
+    cp.id = uid(); cp.name = src.name + "（副本）"; state.characters.push(cp); save(); renderAll(); toast("已复制角色");
+  }));
+  host.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>{
+    if(!confirm("确定删除该角色？")) return;
+    state.characters = state.characters.filter(c=>c.id!==b.dataset.del);
+    state.teamIds = state.teamIds.filter(id=>id!==b.dataset.del);
+    save(); renderAll();
+  }));
+}
+
+/* ================= 截图 OCR 导入 ================= */
+const SCAN_FIELDS = [
+  {k:"atk", label:"攻击力"},
+  {k:"spd", label:"速度"},
+  {k:"critRate", label:"暴击率%"},
+  {k:"critDmg", label:"暴击伤害%"},
+  {k:"dmgBonus", label:"增伤%"},
+  {k:"energyMax", label:"能量上限"},
+  {k:"mult", label:"核心倍率%"},
+  {k:"lcAtk", label:"光锥·攻增"},
+  {k:"lcDmg", label:"光锥·增伤%"},
+  {k:"lcCr", label:"光锥·暴率%"},
+  {k:"lcCd", label:"光锥·爆伤%"},
+  {k:"lcSpd", label:"光锥·速度"}
+];
+let scanValues = {};
+let scanActiveField = null;
+
+function openScanner(){
+  const root = document.getElementById("modalRoot");
+  const trOpts = ()=>{
+    let h = `<option value="10" selected>10</option>`;
+    for(let i=1;i<=9;i++) h += `<option value="${i}">${i}</option>`;
+    return h;
+  };
+  root.innerHTML = `<div class="modal-bg"><div class="modal" style="max-width:1020px">
+    <h2>截图导入（OCR 识别）</h2>
+    <div class="notice info" style="margin-top:0">用法：游戏角色详情页截图 → 拖入或点选 → 「开始识别」（需联网，首次会下载识别模型）→ 先点右侧字段、再点下方识别出的数字填入 → 校对后「保存并创建角色」。数字识别可能出错，请以游戏面板为准逐项核对。</div>
+    <div class="scan-grid">
+      <div>
+        <div class="dropzone" id="dropZone">点击选择截图，或把图片拖到这里</div>
+        <input type="file" id="scanFileInput" accept="image/*" class="hidden">
+        <div class="scan-img hidden" id="scanImgWrap"><img id="scanImg" alt="识别图"></div>
+        <div class="chips" id="chips"></div>
+        <div class="progress-bar hidden" id="scanProg"><i></i></div>
+        <div class="scan-note" id="scanNote"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" id="btnScanRun" disabled>开始识别</button>
+          <button class="btn" id="btnScanSave" disabled>保存并创建角色</button>
+        </div>
+      </div>
+      <div>
+        <div class="form-sec"><div class="fs-t">基础信息（自动匹配或手动）</div>
+          <div class="f-grid" style="grid-template-columns:1fr 1fr">
+            <div><label>角色名</label><input id="s_name" placeholder="必填"></div>
+            <div><label>命途</label><select id="s_path">${PATHS.map(p=>`<option>${p}</option>`).join("")}</select></div>
+            <div><label>属性</label><select id="s_element">${ELEMENTS.map(p=>`<option>${p}</option>`).join("")}</select></div>
+            <div><label>等级</label><input id="s_level" type="number" min="1" max="80" value="80"></div>
+            <div><label>星魂</label><select id="s_eidolon">${[0,1,2,3,4,5,6].map(v=>`<option>${v}</option>`).join("")}</select></div>
+            <div><label>等效拉条率%</label><input id="s_pull" type="number" min="0" max="100" value="0"></div>
+          </div>
+        </div>
+        <div class="form-sec"><div class="fs-t">面板与光锥（先点字段，再点下方识别数字）</div>
+          ${SCAN_FIELDS.map(f=>`<div class="fld-row" data-fld="${f.k}"><span class="fk">${f.label}</span><span class="fv"><span class="vnum">—</span><span class="ph">未填</span></span></div>`).join("")}
+        </div>
+        <div class="form-sec"><div class="fs-t">行迹等级（默认 10，按需修改）</div>
+          <div class="f-grid" style="grid-template-columns:repeat(4,1fr)">
+            ${[["basic","普攻"],["skill","战技"],["ult","终结技"],["talent","天赋"]].map(p=>`<div><label>${p[1]}</label><select data-s="${p[0]}">${trOpts()}</select></div>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btnScanClose">关闭</button>
+    </div>
+  </div></div>`;
+
+  const dz = document.getElementById("dropZone");
+  const fi = document.getElementById("scanFileInput");
+  const img = document.getElementById("scanImg");
+  const note = document.getElementById("scanNote");
+  const prog = document.getElementById("scanProg");
+  scanValues = {}; scanActiveField = null;
+
+  dz.addEventListener("click", ()=>fi.click());
+  dz.addEventListener("dragover", e=>{ e.preventDefault(); dz.classList.add("over"); });
+  dz.addEventListener("dragleave", ()=>dz.classList.remove("over"));
+  dz.addEventListener("drop", e=>{
+    e.preventDefault(); dz.classList.remove("over");
+    if(e.dataTransfer.files[0] && e.dataTransfer.files[0].type.startsWith("image/")) loadScanFile(e.dataTransfer.files[0]);
+    else toast("请拖入图片文件");
+  });
+  fi.addEventListener("change", e=>{ if(e.target.files[0]) loadScanFile(e.target.files[0]); });
+
+  function loadScanFile(file){
+    const r = new FileReader();
+    r.onload = ()=>{
+      img.src = r.result;
+      document.getElementById("scanImgWrap").classList.remove("hidden");
+      dz.classList.add("hidden");
+      note.textContent = "图片已载入，点击「开始识别」。";
+      document.getElementById("btnScanRun").disabled = false;
+      document.getElementById("btnScanSave").disabled = false;
+    };
+    r.readAsDataURL(file);
+  }
+
+  root.querySelectorAll(".fld-row").forEach(row=>row.addEventListener("click", ()=>{
+    root.querySelectorAll(".fld-row").forEach(x=>x.classList.remove("sel"));
+    row.classList.add("sel");
+    scanActiveField = row.dataset.fld;
+  }));
+
+  document.getElementById("btnScanRun").addEventListener("click", ()=>{
+    if(!window.Tesseract){ note.textContent = "识别引擎加载失败（未联网或 CDN 被拦截），可改用右侧手动填写后直接保存。"; return; }
+    btnScanRun.disabled = true;
+    runScanOCR(img, note, prog);
+  });
+
+  document.getElementById("btnScanSave").addEventListener("click", saveScanChar);
+  document.getElementById("btnScanClose").addEventListener("click", closeModal);
+  root.querySelector(".modal-bg").addEventListener("click", e=>{ if(e.target.classList.contains("modal-bg")) closeModal(); });
+}
+
+function runScanOCR(img, note, prog){
+  prog.classList.remove("hidden");
+  prog.querySelector("i").style.width = "0%";
+  note.textContent = "正在加载识别引擎（首次需下载模型，约 20–60 秒）…";
+  Tesseract.createWorker("chi_sim+eng", 1, {
+    logger: m=>{
+      if(m.status==="recognizing text"){ prog.querySelector("i").style.width = Math.round(m.progress*100)+"%"; note.textContent = "识别中 " + Math.round(m.progress*100) + "%"; }
+      else if(m.status==="loading language traineddata"){ note.textContent = "下载识别模型…"; }
+      else if(m.status==="initializing api"){ note.textContent = "初始化识别引擎…"; }
+    }
+  }).then(worker=>{
+    return worker.recognize(img).then(ret=>{
+      worker.terminate();
+      prog.classList.add("hidden");
+      note.textContent = "识别完成。点击下方数字填入右侧字段（先点字段再点数字），请逐项校对后保存。";
+      parseScanNumbers(ret.data.text, note);
+      autoMatchScan(ret.data.text);
+      document.getElementById("btnScanRun").disabled = false;
+    });
+  }).catch(e=>{
+    prog.classList.add("hidden");
+    document.getElementById("btnScanRun").disabled = false;
+    note.textContent = "识别失败：" + (e && e.message ? e.message : e) + "。可手动填写右侧字段后直接保存。";
+  });
+}
+
+function parseScanNumbers(text, note){
+  const nums = text.match(/\d+(?:\.\d+)?%?/g) || [];
+  const chips = document.getElementById("chips");
+  if(nums.length===0){ chips.innerHTML = ""; note.textContent = "未识别到数字，可换更清晰的截图重试，或手动填写。"; return; }
+  chips.innerHTML = nums.map(n=>`<span class="chip" data-n="${n.replace(/%/g,"")}">${n}</span>`).join("");
+  chips.querySelectorAll(".chip").forEach(c=>c.addEventListener("click", ()=>{
+    const k = scanActiveField;
+    if(!k){ toast("请先点击右侧要填的字段"); return; }
+    const row = document.querySelector(`.fld-row[data-fld="${k}"]`);
+    const pct = ["critRate","critDmg","dmgBonus","mult","lcDmg","lcCr","lcCd"].includes(k);
+    row.querySelector(".vnum").textContent = c.dataset.n + (pct ? "%" : "");
+    row.querySelector(".ph").textContent = "已填（可再点覆盖）";
+    scanValues[k] = parseFloat(c.dataset.n);
+  }));
+}
+
+function autoMatchScan(text){
+  PATHS.forEach(p=>{ if(text.includes(p)) document.getElementById("s_path").value = p; });
+  ELEMENTS.forEach(p=>{ if(text.includes(p)) document.getElementById("s_element").value = p; });
+  const lv = text.match(/Lv\s*(\d+)/i) || text.match(/等级\s*(\d+)/) || text.match(/LEVEL\s*(\d+)/i);
+  if(lv){ const v = parseInt(lv[1]); if(v>=1 && v<=80) document.getElementById("s_level").value = v; }
+}
+
+function saveScanChar(){
+  const name = document.getElementById("s_name").value.trim();
+  if(!name){ toast("请填写角色名"); return; }
+  const c = blankCharacter();
+  c.name = name;
+  c.path = document.getElementById("s_path").value;
+  c.element = document.getElementById("s_element").value;
+  c.level = Math.min(80, Math.max(1, parseFloat(document.getElementById("s_level").value) || 80));
+  c.eidolon = parseInt(document.getElementById("s_eidolon").value) || 0;
+  c.pullRate = Math.max(0, Math.min(100, parseFloat(document.getElementById("s_pull").value) || 0));
+  ["basic","skill","ult","talent"].forEach(k=>{ c.traces[k] = parseInt(document.querySelector(`[data-s="${k}"]`).value) || 1; });
+  if(scanValues.atk!=null) c.panel.atk = scanValues.atk;
+  if(scanValues.spd!=null) c.panel.spd = scanValues.spd;
+  if(scanValues.critRate!=null) c.panel.critRate = Math.min(100, scanValues.critRate);
+  if(scanValues.critDmg!=null) c.panel.critDmg = scanValues.critDmg;
+  if(scanValues.dmgBonus!=null) c.panel.dmgBonus = scanValues.dmgBonus;
+  if(scanValues.energyMax!=null) c.panel.energyMax = scanValues.energyMax;
+  if(scanValues.mult!=null) c.multiplier = scanValues.mult;
+  c.lightCone.atkBonus = scanValues.lcAtk || 0;
+  c.lightCone.dmgBonus = scanValues.lcDmg || 0;
+  c.lightCone.critRateBonus = scanValues.lcCr || 0;
+  c.lightCone.critDmgBonus = scanValues.lcCd || 0;
+  c.lightCone.spdBonus = scanValues.lcSpd || 0;
+  state.characters.push(c);
+  save(); closeModal(); renderAll();
+  toast("已从截图创建角色：" + c.name);
+}
+
+/* ================= 渲染：编辑模态 ================= */
+function openEditor(c){
+  const isNew = !c;
+  const d = isNew ? blankCharacter() : JSON.parse(JSON.stringify(c));
+  const trSel = (key)=>{
+    let html = `<option value="${d.traces[key]}">${d.traces[key]}</option>`;
+    for(let i=1;i<=12;i++) html += `<option value="${i}">${i}</option>`;
+    return html;
+  };
+  const optList = (arr, cur)=> arr.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("");
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `<div class="modal-bg"><div class="modal">
+    <h2>${isNew?"添加角色":"编辑角色"}${d.name?" · "+d.name:""}</h2>
+    <div class="f-grid">
+      <div><label>角色名 *</label><input id="f_name" value="${esc(d.name)}" placeholder="如：开拓者"></div>
+      <div><label>命途</label><select id="f_path">${optList(PATHS,d.path)}</select></div>
+      <div><label>属性</label><select id="f_element">${optList(ELEMENTS,d.element)}</select></div>
+      <div><label>等级</label><input id="f_level" type="number" min="1" max="80" value="${d.level}"></div>
+      <div><label>星魂</label><select id="f_eidolon">${optList([0,1,2,3,4,5,6],d.eidolon)}</select></div>
+      <div><label>备注</label><input id="f_note" value="${esc(d.note||"")}" placeholder="可选"></div>
+    </div>
+    <div class="form-sec"><div class="fs-t">行迹等级（目标 10）</div>
+      <div class="f-grid">
+        <div><label>普攻</label><select id="f_tr_basic">${trSel("basic")}</select></div>
+        <div><label>战技</label><select id="f_tr_skill">${trSel("skill")}</select></div>
+        <div><label>终结技</label><select id="f_tr_ult">${trSel("ult")}</select></div>
+        <div><label>天赋</label><select id="f_tr_talent">${trSel("talent")}</select></div>
+      </div>
+    </div>
+    <div class="form-sec"><div class="fs-t">进战面板（最终数值，含光锥与遗器）</div>
+      <div class="f-grid">
+        <div><label>攻击力</label><input id="f_atk" type="number" value="${d.panel.atk}"></div>
+        <div><label>速度</label><input id="f_spd" type="number" value="${d.panel.spd}"></div>
+        <div><label>暴击率 %</label><input id="f_critRate" type="number" min="0" max="100" value="${d.panel.critRate}"></div>
+        <div><label>暴击伤害 %</label><input id="f_critDmg" type="number" value="${d.panel.critDmg}"></div>
+        <div><label>增伤 %</label><input id="f_dmgBonus" type="number" value="${d.panel.dmgBonus}"></div>
+        <div><label>能量上限</label><input id="f_energyMax" type="number" value="${d.panel.energyMax}"></div>
+        <div class="full"><label>等效拉条率 %（该角色每次行动平均提前的行动值比例，用于行动值模拟；0 表示无拉条）</label>
+          <input id="f_pull" type="number" min="0" max="100" value="${d.pullRate||0}"></div>
+        <div class="full"><label>核心技能倍率 %（攻击力×此值 = 单次伤害基数，如 220 表示 220% 攻击）</label>
+          <input id="f_mult" type="number" value="${d.multiplier}"></div>
+      </div>
+    </div>
+    <div class="form-sec"><div class="fs-t">当前光锥与备选光锥（光锥属性 = 面板增量，攻击为绝对值，其余为百分比）</div>
+      <div class="f-grid">
+        <div><label>当前光锥名</label><input id="f_lc_name" value="${esc(d.lightCone.name)}"></div>
+        <div><label>攻击增量</label><input id="f_lc_atk" type="number" value="${d.lightCone.atkBonus}"></div>
+        <div><label>增伤 %</label><input id="f_lc_dmg" type="number" value="${d.lightCone.dmgBonus}"></div>
+        <div><label>暴击率 %</label><input id="f_lc_cr" type="number" value="${d.lightCone.critRateBonus}"></div>
+        <div><label>暴击伤害 %</label><input id="f_lc_cd" type="number" value="${d.lightCone.critDmgBonus}"></div>
+        <div><label>速度</label><input id="f_lc_spd" type="number" value="${d.lightCone.spdBonus}"></div>
+        <div><label>备选光锥名</label><input id="f_alt_name" value="${esc(d.altLC.name)}" placeholder="留空则不对比"></div>
+        <div><label>攻击增量</label><input id="f_alt_atk" type="number" value="${d.altLC.atkBonus}"></div>
+        <div><label>增伤 %</label><input id="f_alt_dmg" type="number" value="${d.altLC.dmgBonus}"></div>
+        <div><label>暴击率 %</label><input id="f_alt_cr" type="number" value="${d.altLC.critRateBonus}"></div>
+        <div><label>暴击伤害 %</label><input id="f_alt_cd" type="number" value="${d.altLC.critDmgBonus}"></div>
+        <div><label>速度</label><input id="f_alt_spd" type="number" value="${d.altLC.spdBonus}"></div>
+      </div>
+    </div>
+    <div class="form-sec"><div class="fs-t">遗器（第一版为主词条记录与套装名，用于盘点）</div>
+      <div class="f-grid">
+        ${RELIC_SLOTS.map(s=>`<div><label>${s}部主词条</label><input data-slot="${s}" value="${esc(d.relics[s]||"")}"></div>`).join("")}
+        <div><label>套装一</label><input id="f_set1" value="${esc(d.relicSets[0]||"")}"></div>
+        <div><label>套装二</label><input id="f_set2" value="${esc(d.relicSets[1]||"")}"></div>
+        <div class="full"><label><input type="checkbox" id="f_relicReady" ${d.relicReady?"checked":""} style="width:auto"> 遗器已到位（主词条正确且强化完成，用于养成建议）</label></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btnModalClose">取消</button>
+      <button class="btn primary" id="btnModalSave">保存</button>
+    </div>
+  </div></div>`;
+
+  root.querySelector("#btnModalClose").addEventListener("click", closeModal);
+  root.querySelector(".modal-bg").addEventListener("click", e=>{ if(e.target.classList.contains("modal-bg")) closeModal(); });
+  root.querySelector("#btnModalSave").addEventListener("click", ()=>{
+    const num = (id, fb)=>{ const v = parseFloat(document.getElementById(id).value); return isNaN(v)?fb:v; };
+    const str = id=>document.getElementById(id).value.trim();
+    if(!str("f_name")){ toast("角色名不能为空"); return; }
+    d.name = str("f_name"); d.path = str("f_path"); d.element = str("f_element");
+    d.level = Math.min(80, Math.max(1, num("f_level",1))); d.eidolon = num("f_eidolon",0);
+    d.note = str("f_note");
+    d.traces.basic = num("f_tr_basic",1); d.traces.skill = num("f_tr_skill",1);
+    d.traces.ult = num("f_tr_ult",1); d.traces.talent = num("f_tr_talent",1);
+    d.panel.atk = num("f_atk",1000); d.panel.spd = num("f_spd",100);
+    d.panel.critRate = Math.min(100, num("f_critRate",0)); d.panel.critDmg = num("f_critDmg",100);
+    d.panel.dmgBonus = num("f_dmgBonus",0); d.panel.energyMax = num("f_energyMax",100);
+    d.pullRate = Math.min(100, Math.max(0, num("f_pull",0))); d.multiplier = num("f_mult",200);
+    d.lightCone = {name:str("f_lc_name"), atkBonus:num("f_lc_atk",0), dmgBonus:num("f_lc_dmg",0),
+      critRateBonus:num("f_lc_cr",0), critDmgBonus:num("f_lc_cd",0), spdBonus:num("f_lc_spd",0)};
+    d.altLC = {name:str("f_alt_name"), atkBonus:num("f_alt_atk",0), dmgBonus:num("f_alt_dmg",0),
+      critRateBonus:num("f_alt_cr",0), critDmgBonus:num("f_alt_cd",0), spdBonus:num("f_alt_spd",0)};
+    RELIC_SLOTS.forEach(s=>{ d.relics[s] = document.querySelector(`[data-slot="${s}"]`).value.trim(); });
+    d.relicSets[0] = str("f_set1"); d.relicSets[1] = str("f_set2");
+    d.relicReady = document.getElementById("f_relicReady").checked;
+    if(isNew) state.characters.push(d);
+    save(); closeModal(); renderAll();
+    toast(isNew?"已添加角色":"已保存角色");
+  });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); }, {once:true});
+}
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ================= 模拟引擎（口径见数据说明） ================= */
+function effectivePanel(c, useAlt){
+  /* 面板字段：critRate/critDmg/dmgBonus 为百分比数值；atk 为绝对值。
+     计算备选方案时：先剥掉当前光锥增量，再叠加备选光锥增量。 */
+  const p = c.panel;
+  const cur = useAlt ? c.lightCone : {atkBonus:0,dmgBonus:0,critRateBonus:0,critDmgBonus:0,spdBonus:0};
+  const alt = useAlt ? c.altLC : {atkBonus:0,dmgBonus:0,critRateBonus:0,critDmgBonus:0,spdBonus:0};
+  if(!useAlt){
+    return {
+      atk:p.atk, spd:p.spd, critRate:p.critRate, critDmg:p.critDmg, dmgBonus:p.dmgBonus
+    };
+  }
+  const base = {
+    atk:p.atk - (cur.atkBonus||0),
+    spd:p.spd - (cur.spdBonus||0),
+    critRate:p.critRate - (cur.critRateBonus||0),
+    critDmg:p.critDmg - (cur.critDmgBonus||0),
+    dmgBonus:p.dmgBonus - (cur.dmgBonus||0)
+  };
+  return {
+    atk:base.atk + (alt.atkBonus||0),
+    spd:base.spd + (alt.spdBonus||0),
+    critRate:base.critRate + (alt.critRateBonus||0),
+    critDmg:base.critDmg + (alt.critDmgBonus||0),
+    dmgBonus:base.dmgBonus + (alt.dmgBonus||0)
+  };
+}
+
+function simulateCharacter(c, useAlt){
+  const panel = effectivePanel(c, !!useAlt);
+  const par = state.params[state.mode];
+
+  // 单次期望伤害（防御系数 0.5 为 80 级角色对 80 级敌人的示例值）
+  const critRate = Math.max(0, Math.min(100, panel.critRate)) / 100;
+  const critExpect = 1 + critRate * (Math.max(0,panel.critDmg) / 100);
+  const dmgBonus = 1 + Math.max(0, panel.dmgBonus) / 100;
+  const single = panel.atk * (c.multiplier / 100) * dmgBonus * critExpect * 0.5;
+
+  // 行动值
+  const spd = Math.max(1, panel.spd);
+  const av = 10000 / spd;
+  const effAv = av * (1 - Math.max(0, Math.min(100, c.pullRate||0)) / 100);
+  let windowAv = 0;
+  if(state.mode==="moc") windowAv = 150 + 100 * (par.cycles - 1);
+  else if(state.mode==="pf") windowAv = par.waves * (150 + 100 * (par.cycles - 1));
+  else windowAv = par.budget;
+  const actions = Math.max(1, Math.floor(windowAv / effAv));
+  const windowDmg = single * actions;
+
+  // 评分（模式口径）
+  let score, parts;
+  if(state.mode==="as"){
+    const bossHp = par.bossHp;
+    const dmgScore = Math.min(2000, windowDmg / bossHp * 2000);
+    const killActions = Math.max(1, Math.ceil(bossHp / single));
+    const killAv = killActions * effAv;
+    const remain = Math.min(2000, Math.max(0, par.budget - killAv));
+    score = dmgScore + remain;
+    parts = {single, actions, windowAv, windowDmg, dmgScore, remain, killAv, critExpect};
+  }else{
+    score = windowDmg * par.targets;
+    parts = {single, actions, windowAv, windowDmg, score, critExpect};
+  }
+  return {c, panel, av, effAv, single, actions, windowDmg, score, parts};
+}
+
+function runSim(){
+  const mode = state.mode;
+  const team = state.teamIds.map(id=>getChar(id)).filter(Boolean);
+  if(team.length===0){ toast("请先在下方角色卡片中点「入队」选择至少 1 人"); return; }
+  const scores = team.map(c=>{
+    const cur = simulateCharacter(c, false);
+    let alt = null;
+    if(c.altLC && c.altLC.name){ alt = simulateCharacter(c, true); }
+    return {id:c.id, name:c.name, cur, alt};
+  });
+  scores.sort((a,b)=> b.cur.score - a.cur.score);
+  state.lastSim = {mode, ts:Date.now(), scores};
+  save();
+  renderView();
+  toast("模拟完成");
+}
+
+/* ================= 养成建议引擎（体力优先级） ================= */
+function buildAdvice(){
+  const items = [];
+  state.characters.forEach(c=>{
+    const g = growthGap(c);
+    if(g.trGap>0){
+      items.push({pri:1, kind:"行迹", icon:"L", c, text:`行迹未满（4 项合计差 ${g.trGap} 级）。行迹是确定收益，优先消耗体力刷行迹材料与信用点。`});
+    }
+    if(g.lvGap>0){
+      items.push({pri:2, kind:"等级", icon:"↑", c, text:`等级未满（差 ${g.lvGap} 级）。升到 80 提高基础面板，与行迹同步进行。`});
+    }
+    if(g.trGap===0 && g.lvGap===0 && !g.relicReady){
+      items.push({pri:3, kind:"遗器", icon:"R", c, text:`角色养成已满，再把体力转向遗器。遗器是随机项，刷取期望成本高，先保证主词条正确。`});
+    }
+  });
+  items.sort((a,b)=>a.pri-b.pri);
+  const priColor = {1:"pri-1",2:"pri-2",3:"pri-3",4:"pri-4"};
+  return items.map((it,i)=>`<div class="adv-item">
+    <div class="pri ${priColor[it.pri]}">${it.pri}</div>
+    <div class="tx">
+      <div class="t">${esc(it.c.name)} · ${it.kind}</div>
+      <div class="s">${it.text}</div>
+      ${it.kind==="行迹"?`<div class="s">体力口径参考：行迹升满 ≈ ${COST.tracesMax} 体力（示例估算）</div>`:""}
+      ${it.kind==="等级"?`<div class="s">体力口径参考：等级 1→80 ≈ ${COST.level80} 体力（示例估算）</div>`:""}
+      ${it.kind==="遗器"?`<div class="s">体力口径参考：单件遗器毕业期望 ≈ ${COST.relicPiece} 体力（示例估算）</div>`:""}
+    </div>
+  </div>`).join("");
+}
+
+/* ================= 渲染：主视图（当前模式） ================= */
+function renderParams(){
+  const defs = MODES[state.mode].paramDefs;
+  const cur = state.params[state.mode];
+  return defs.map(p=>{
+    const val = cur[p.k] ?? p.def;
+    const unit = p.k==="bossHp" ? " <span class='muted small'>(示例)</span>" : "";
+    return `<div><label>${p.label}${unit}</label>
+      <input type="number" min="${p.min}" max="${p.max}" step="${p.step}" data-param="${p.k}" value="${val}"></div>`;
+  }).join("");
+}
+
+function renderTeamPick(){
+  if(state.characters.length===0) return `<div class="muted small">暂无角色，请先添加或导入。</div>`;
+  return state.characters.map(c=>{
+    const on = isInTeam(c.id);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:${on?"rgba(84,176,255,.12)":"transparent"};border:1px solid ${on?"var(--acc)":"var(--line)"};cursor:pointer">
+      <input type="checkbox" data-teamck="${c.id}" ${on?"checked":""} style="width:auto">
+      <span>${esc(c.name)}</span><span class="muted small" style="margin-left:auto">${c.path}·Lv${c.level}</span>
+    </label>`;
+  }).join("");
+}
+
+function renderSimResult(){
+  const ls = state.lastSim;
+  if(!ls || ls.mode!==state.mode) return `<div class="empty"><div class="big">尚未运行模拟</div>设置参数并选择队伍后，点击「运行模拟」。</div>`;
+  const rows = ls.scores.map((s,i)=>{
+    const cur = s.cur;
+    const scoreTxt = state.mode==="as" ? `${fmt(cur.score,0)} 分` : fmt(cur.score,0);
+    return `<div class="rank-row ${i===0?"pos1":""}">
+      <div class="pos">${i+1}</div>
+      <div class="who">
+        <div class="n">${esc(s.name)}</div>
+        <div class="s">行动 ${cur.parts.actions} 次 · 单动 ${fmt(cur.single,0)} · 窗口总伤 ${fmt(cur.windowDmg,0)}</div>
+      </div>
+      <div class="score"><div class="big num">${scoreTxt}</div>
+        <div class="muted small">${state.mode==="as"?"伤害分"+fmt(cur.parts.dmgScore,0)+"+剩AV分"+fmt(cur.parts.remain,0):"窗口总伤害×目标"+state.params[state.mode].targets}</div>
+      </div>
+    </div>`;
+  }).join("");
+  const altRows = ls.scores.filter(s=>s.alt).map(s=>{
+    const gain = s.alt.score - s.cur.score;
+    const pct = s.cur.score>0 ? (gain/s.cur.score*100) : 0;
+    const sign = gain>=0?"+":"";
+    return `<tr>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.cur.c.lightCone.name)||"—"}</td>
+      <td class="num">${fmt(s.cur.score,0)}</td>
+      <td>${esc(s.alt.c.altLC.name)}</td>
+      <td class="num">${fmt(s.alt.score,0)}</td>
+      <td class="num" style="color:${gain>=0?"var(--green)":"var(--red)"}">${sign}${fmt(gain,0)}（${sign}${pct.toFixed(1)}%）</td>
+    </tr>`;
+  }).join("");
+  return `<div class="card"><h3>评分排行 <span class="sub">${MODES[state.mode].name} · ${MODES[state.mode].key==="as"?"行动值预算 "+state.params[state.mode].budget:"窗口 AV "+ls.scores[0].cur.parts.windowAv}</span></h3>
+    ${rows}
+    <div class="notice info">评分口径：${MODES[state.mode].desc}</div>
+  </div>
+  <div class="card"><h3>光锥对比 <span class="sub">当前 vs 备选（仅列出已填备选光锥的角色）</span></h3>
+    ${altRows?`<table style="table-layout:fixed"><colgroup><col style="width:16%"><col style="width:18%"><col style="width:13%"><col style="width:18%"><col style="width:13%"><col style="width:22%"></colgroup>
+    <thead><tr><th>角色</th><th>当前光锥</th><th>当前评分</th><th>备选光锥</th><th>备选评分</th><th>变化</th></tr></thead><tbody>${altRows}</tbody></table>`
+    :`<div class="muted small">在角色编辑中填写「备选光锥」后，这里会显示替换收益对比。</div>`}
+  </div>
+  <div class="card"><h3>模拟明细 <span class="sub">单动伤害拆解（防御系数 0.5 为示例口径）</span></h3>
+    <table style="table-layout:fixed"><colgroup><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:14%"><col style="width:14%"><col style="width:14%"></colgroup>
+    <thead><tr><th>角色</th><th>速度</th><th>行动值</th><th>窗口行动次数</th><th>暴击期望</th><th>单动伤害</th><th>窗口总伤害</th></tr></thead>
+    <tbody>${ls.scores.map(s=>{
+      const p=s.cur; return `<tr><td>${esc(s.name)}</td><td class="num">${fmt(p.panel.spd,1)}</td><td class="num">${fmt(p.av,1)}</td>
+      <td class="num">${p.actions}</td><td class="num">${p.parts.critExpect.toFixed(2)}</td><td class="num">${fmt(p.single,0)}</td><td class="num">${fmt(p.windowDmg,0)}</td></tr>`;
+    }).join("")}</tbody></table>
+  </div>`;
+}
+
+/* ================= 渲染：主视图 ================= */
+function renderView(){
+  const host = document.getElementById("view");
+  const adviceHtml = buildAdvice();
+  const adviceCard = state.characters.length===0
+    ? `<div class="card"><h3>养成建议 <span class="sub">体力应用优先级</span></h3><div class="muted small">添加或导入角色后，这里会根据「行迹 / 等级 / 遗器」完整度给出体力应用优先级。</div></div>`
+    : `<div class="card"><h3>养成建议 <span class="sub">体力应用优先级 · 按确定收益排序</span></h3>${adviceHtml||`<div class="muted small">所有角色养成均已完成，建议把体力全部投入遗器或为下一队做准备。</div>`}
+      <div class="small muted" style="margin-top:8px">体力成本为示例估算口径，见底部「数据口径说明」。</div></div>`;
+
+  host.innerHTML = `
+  <div class="two-col">
+    <div>
+      <div class="card"><h3>模拟引擎 <span class="sub">${MODES[state.mode].name} · 参数与队伍</span></h3>
+        <div class="f-grid" style="margin-bottom:12px">${renderParams()}</div>
+        <div class="form-sec"><div class="fs-t">模拟队伍（选 1–4 人）</div>${renderTeamPick()}</div>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn primary" id="btnRun">运行模拟</button>
+          <span class="small muted">队伍 ${state.teamIds.length}/4 人</span>
+        </div>
+      </div>
+      ${renderSimResult()}
+    </div>
+    <div>
+      ${adviceCard}
+      <div class="card"><h3>队伍行动值速览 <span class="sub">${MODES[state.mode].name} 窗口内</span></h3>
+        <div id="avBars"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>角色数据管理 <span class="sub">${state.characters.length} 个角色 · 点击编辑完善面板</span>
+    <button class="btn primary sm" id="btnAddChar" style="margin-left:auto">添加角色</button></h3>
+    <div id="charList"></div>
+  </div>`;
+
+  document.getElementById("btnRun").addEventListener("click", runSim);
+  document.getElementById("btnAddChar").addEventListener("click", ()=>openEditor());
+  host.querySelectorAll("[data-teamck]").forEach(ch=>ch.addEventListener("change", ()=>toggleTeam(ch.dataset.teamck)));
+  host.querySelectorAll("[data-param]").forEach(inp=>inp.addEventListener("change", ()=>{
+    state.params[state.mode][inp.dataset.param] = parseFloat(inp.value) || 0;
+    save();
+  }));
+
+  renderAvBars();
+  renderCharacters();
+}
+
+function renderAvBars(){
+  const host = document.getElementById("avBars");
+  if(!host) return;
+  const par = state.params[state.mode];
+  let windowAv = 0;
+  if(state.mode==="moc") windowAv = 150 + 100*(par.cycles-1);
+  else if(state.mode==="pf") windowAv = par.waves * (150 + 100*(par.cycles-1));
+  else windowAv = par.budget;
+  const team = state.teamIds.map(id=>getChar(id)).filter(Boolean);
+  if(team.length===0){ host.innerHTML = `<div class="muted small">入队后显示各角色在窗口内的行动次数。</div>`; return; }
+  const maxActs = Math.max(...team.map(c=>Math.max(1, Math.floor(windowAv / (10000/c.panel.spd * (1-(c.pullRate||0)/100))))));
+  host.innerHTML = team.map(c=>{
+    const av = 10000/c.panel.spd;
+    const effAv = av * (1-(c.pullRate||0)/100);
+    const acts = Math.max(1, Math.floor(windowAv/effAv));
+    const w = Math.round(acts/maxActs*100);
+    return `<div class="bar-row">
+      <div class="nm">${esc(c.name)}</div>
+      <div class="bar"><i style="width:${w}%;background:${c.pullRate?"var(--gold)":"var(--acc)"}"></i></div>
+      <div class="vl num">${acts} 动${c.pullRate?`<span class="small" style="color:var(--gold)"> 拉${c.pullRate}%</span>`:""}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ================= 事件绑定与初始化 ================= */
+function bindHeader(){
+  document.getElementById("btnScanner").addEventListener("click", openScanner);
+  document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileInput").click());
+  document.getElementById("fileInput").addEventListener("change", e=>{ if(e.target.files[0]){ importJSON(e.target.files[0]); e.target.value=""; } });
+  document.getElementById("btnExport").addEventListener("click", exportJSON);
+  document.getElementById("btnExample").addEventListener("click", ()=>{
+    if(!confirm("载入示例将覆盖当前数据，确定？")) return;
+    state.characters = exampleData();
+    state.teamIds = state.characters.map(c=>c.id);
+    state.lastSim = null;
+    save(); renderAll(); toast("已载入示例数据");
+  });
+  document.getElementById("btnClear").addEventListener("click", ()=>{
+    if(!confirm("确定清空全部数据？此操作不可撤销。")) return;
+    state.characters=[]; state.teamIds=[]; state.lastSim=null;
+    save(); renderAll(); toast("已清空");
+  });
+}
+
+function renderAll(){
+  renderModeTabs();
+  renderView();
+}
+
+function init(){
+  load();
+  bindHeader();
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
